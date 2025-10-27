@@ -110,7 +110,7 @@ while True:
             confidence=int((1-result[1]/300)*100)
             user_name = names[result[0]] if 0<=result[0]<len(names) else "Unknown"
             confidence_text=f"Confidence: {confidence}%"
-            if confidence>=85 and last_face_id!=result[0]:
+            if confidence>=88 and last_face_id!=result[0]:
                 recognized_user=user_name;unlock_time=time.time();in_countdown=True;last_face_id=result[0]
                 speak(f"Face recognized. Welcome {user_name}. Door unlocked. It will lock in {COUNTDOWN_SECONDS} seconds.")
                 status_text=f"Unlocked: {recognized_user}"

@@ -6,7 +6,7 @@ import os
 script_dir = os.path.dirname(os.path.abspath(__file__))  # folder of this script
 base_path = os.path.normpath(os.path.join(script_dir, "..", "face_images"))
 
-max_samples = 500  # total samples to collect
+max_samples = 1000  # total samples to collect
 
 # -------------------- FACE DETECTOR --------------------
 face_classifier = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
