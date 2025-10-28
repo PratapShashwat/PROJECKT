@@ -1,10 +1,9 @@
-// Arduino Serial-controlled Relay for Solenoid
-const int relayPin = 13;    // digital pin connected to relay IN (use 8 or any free digital pin)
+const int relayPin = 13;    // pin connected to relay IN 
 const unsigned long BAUD = 115200;
 
 void setup() {
   pinMode(relayPin, OUTPUT);
-  digitalWrite(relayPin, HIGH); // start locked (relay off)
+  digitalWrite(relayPin, HIGH); // initially locked (relay off)
   Serial.begin(BAUD);
 }
 
@@ -14,10 +13,10 @@ void loop() {
     cmd.trim();
     if (cmd.length() > 0) {
       if (cmd == "U" || cmd == "UNLOCK" || cmd == "ON") {
-        digitalWrite(relayPin, LOW); // energize relay -> solenoid powered
+        digitalWrite(relayPin, LOW);
         Serial.println("ACK:UNLOCK");
       } else if (cmd == "L" || cmd == "LOCK" || cmd == "OFF") {
-        digitalWrite(relayPin, HIGH);  // de-energize
+        digitalWrite(relayPin, HIGH);
         Serial.println("ACK:LOCK");
       } else {
         Serial.print("UNKNOWN:");
