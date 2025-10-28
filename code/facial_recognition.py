@@ -3,6 +3,43 @@ import numpy as np
 import os
 import pyttsx3
 import time
+import serial
+
+# ---------------- Serial controller for Arduino ----------------
+class ArduinoRelay:
+    def __init__(self, port, baud=115200, timeout=1):
+        self.port = port
+        self.baud = baud
+        try:
+            self.ser = serial.Serial(port, baud, timeout=timeout)
+            time.sleep(2)  # wait for Arduino to reset
+        except Exception as e:
+            print("Failed to open serial port:", e)
+            self.ser = None
+
+    def send(self, msg):
+        if not self.ser:
+            print("Serial port not available")
+            return False
+        try:
+            self.ser.write((msg + '\n').encode('utf-8'))
+            self.ser.flush()
+            # optional: read ACK for simple confirmation
+            ack = self.ser.readline().decode('utf-8', errors='ignore').strip()
+            # print("Arduino ack:", ack)
+            return True
+        except Exception as e:
+            print("Serial write error:", e)
+            return False
+
+    def close(self):
+        if self.ser:
+            self.ser.close()
+            self.ser = None
+
+ARDUINO_PORT = "COM5"   # <-- change this to your port
+relay = ArduinoRelay(ARDUINO_PORT, baud=115200)
+
 
 # -------------------- VOICE --------------------
 engine = pyttsx3.init('sapi5')
@@ -103,7 +140,7 @@ while True:
         status_text=f"Unlocked: {recognized_user}"
         confidence_text=f"Door locks in {remaining}s"
         draw_progress(image,(panel_pos[0]+50,panel_pos[1]+90),(200,12),progress)
-        if remaining==0: in_countdown=False;unlock_time=None;recognized_user=None;last_face_id=None;speak("Door locked again for your safety.")
+        if remaining==0: in_countdown=False;unlock_time=None;recognized_user=None;last_face_id=None;speak("Door locked again for your safety."); relay.send("L")   # <-- send lock command to Arduino
     elif face is not None:
         try:
             result = model.predict(face)
@@ -114,6 +151,7 @@ while True:
                 recognized_user=user_name;unlock_time=time.time();in_countdown=True;last_face_id=result[0]
                 speak(f"Face recognized. Welcome {user_name}. Door unlocked. It will lock in {COUNTDOWN_SECONDS} seconds.")
                 status_text=f"Unlocked: {recognized_user}"
+                relay.send("U")   # <-- send unlock command to Arduino
             else:
                 status_text="Locked"; color=(255,0,0)
         except: status_text="Error reading face"; color=(255,0,0)
@@ -123,7 +161,7 @@ while True:
     draw_text_center_panel(image,confidence_text,85,panel_pos,panel_size,font_scale=0.6,color=(255,255,255))
 
     cv2.imshow("Face Recognition",image)
-    if cv2.waitKey(1)==13: break
+    if cv2.waitKey(1)==13: relay.close();break
 
 cap.release()
 cv2.destroyAllWindows()
