@@ -1,0 +1,8 @@
+{
+    "ARDUINO_PORT": "COM5",
+    "INTENT_TIME_SEC": 1.0,
+    "LOITER_TIME_SEC": 10,
+    "COUNTDOWN_SECONDS": 10,
+    "CONFIDENCE_THRESH": 86,
+    "ADMIN_PASSWORD": "admin"
+}
