@@ -1,0 +1,139 @@
+QWidget {
+    background-color: #2E2E2E;
+    color: #FFFFFF;
+    font-family: Arial;
+}
+
+/* --- Main Window --- */
+QLabel#VideoLabel {
+    background-color: #000000;
+    border: 2px solid #555555;
+}
+
+QLabel#StatusLabel {
+    font-size: 32px;
+    font-weight: bold;
+}
+
+QLabel#InfoLabel {
+    font-size: 16px;
+    color: #AAAAAA;
+}
+
+QPushButton {
+    background-color: #007ACC;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 14px;
+}
+QPushButton:hover {
+    background-color: #005FA6;
+}
+
+QPushButton#UnlockButton {
+    background-color: #008f00; /* Green */
+}
+QPushButton#UnlockButton:hover {
+    background-color: #006a00;
+}
+
+QPushButton#LockNowButton {
+    background-color: #D32F2F; /* Red */
+}
+QPushButton#LockNowButton:hover {
+    background-color: #B71C1C;
+}
+
+/* --- Login Dialog --- */
+QDialog#LoginDialog {
+    background-color: #2E2E2E;
+}
+
+QDialog#LoginDialog QLabel {
+    font-size: 14px;
+}
+
+QDialog#LoginDialog QLineEdit {
+    background-color: #555555;
+    color: #FFFFFF;
+    border: 1px solid #777777;
+    border-radius: 5px;
+    padding: 5px;
+    font-size: 14px;
+}
+
+/* --- Admin Panel --- */
+QTabWidget::pane {
+    border-top: 2px solid #555555;
+}
+QTabBar::tab {
+    background: #444444;
+    color: #FFFFFF;
+    padding: 10px;
+    border: 1px solid #555555;
+    border-bottom: none;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}
+QTabBar::tab:selected {
+    background: #2E2E2E;
+    border-bottom: 2px solid #007ACC;
+}
+QWidget#Tab {
+    background-color: #2E2E2E;
+}
+
+QSlider::groove:horizontal {
+    border: 1px solid #999999;
+    height: 8px; 
+    background: #555555;
+    margin: 2px 0;
+    border-radius: 4px;
+}
+QSlider::handle:horizontal {
+    background: #007ACC;
+    border: 1px solid #007ACC;
+    width: 18px;
+    margin: -5px 0; 
+    border-radius: 9px;
+}
+
+QPushButton#DeleteButton {
+    background-color: #D32F2F;
+}
+QPushButton#DeleteButton:hover {
+    background-color: #B71C1C;
+}
+
+QPushButton#AddSamplesButton {
+    background-color: #008f00;
+}
+QPushButton#AddSamplesButton:hover {
+    background-color: #006a00;
+}
+
+QListWidget {
+    background-color: #444444;
+    border: 1px solid #777777;
+    border-radius: 5px;
+}
+
+/* --- FIX for gridline-color --- */
+QTableWidget { 
+    background-color: #444444; 
+    border: 1px solid #555555; /* Add a border to the table itself */
+    gridline-color: transparent; /* Hide default gridlines if any */
+}
+QTableWidget::item {
+    border-bottom: 1px solid #555555; /* Adds the horizontal grid lines */
+    padding: 3px;
+}
+/* --- End Fix --- */
+
+QHeaderView::section { 
+    background-color: #555555; 
+    color: #FFFFFF; 
+    padding: 4px; 
+    border: 1px solid #333333; 
+}
