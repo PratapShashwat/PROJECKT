@@ -10,11 +10,15 @@ class ConfigManager:
         # Default settings
         self.defaults = {
             'ARDUINO_PORT': "COM5",
+            'ARDUINO_BAUD': 9600,
             'INTENT_TIME_SEC': 1.0,       
             'LOITER_TIME_SEC': 10.0,      
             'COUNTDOWN_SECONDS': 10,      
             'CONFIDENCE_THRESH': 86,
-            'ADMIN_PASSWORD': "admin"
+            'ADMIN_PASSWORD': "admin",
+            'DOOR_AJAR_TIMEOUT': 20,
+            'LIVENESS_BLINKS': 2,      # <-- NEW
+            'MAX_SAMPLES': 1000,
         }
         
         self.config = self.load_config()
@@ -30,10 +34,13 @@ class ConfigManager:
             with open(self.config_path, 'r') as f:
                 config = json.load(f)
                 # Check for missing keys and add them
+                missing_keys = False
                 for key, value in self.defaults.items():
                     if key not in config:
                         config[key] = value
-                self.save_config(config) # Save back to add new keys
+                        missing_keys = True
+                if missing_keys:
+                    self.save_config(config) # Save back to add new keys
                 return config
         except Exception as e:
             print(f"Error loading config file: {e}. Loading defaults.")
