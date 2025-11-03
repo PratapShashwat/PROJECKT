@@ -11,9 +11,14 @@ from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QWidget, QFormLay
 from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QPixmap
 from config_manager import ConfigManager
-import audio_manager # <-- NEW
+import audio_manager  # For providing audio/spoken feedback
 
 class AdminPanel(QDialog):
+    """
+    Main dialog window for application administration.
+    Provides a tabbed interface for Settings, User Management,
+    Access Logs, and Intruder Photos.
+    """
     
     def __init__(self, config_manager, parent=None):
         super().__init__(parent)
@@ -21,47 +26,61 @@ class AdminPanel(QDialog):
         self.config_manager = config_manager
         self.config = self.config_manager.get_all()
         
+        # --- Path Definitions ---
+        # Get the directory where this script (admin_panel.py) is located
         script_dir = os.path.dirname(os.path.abspath(__file__))
+        # Define paths relative to the script's location
         self.data_path = os.path.normpath(os.path.join(script_dir, "..", "face_images"))
         self.log_file_path = os.path.normpath(os.path.join(script_dir, "..", "access_log.csv"))
         self.intruder_folder_path = os.path.normpath(os.path.join(script_dir, "..", "intruders"))
         
+        # --- Initial Tasks ---
+        # Run cleanup tasks on startup (e.g., delete old logs/photos)
         self.perform_cleanup() 
         
+        # --- Window Properties ---
         self.setWindowTitle("Admin Panel")
         self.setModal(True)
         self.setMinimumSize(600, 500) 
 
-        # --- STYLESHEET REMOVED ---
-
+        # --- Main Layout ---
         main_layout = QVBoxLayout()
         self.tabs = QTabWidget()
         main_layout.addWidget(self.tabs)
         self.setLayout(main_layout)
 
+        # --- Create Tabs ---
         self.create_settings_tab()
         self.create_user_mgmt_tab()
         self.create_logs_tab()
         self.create_intruders_tab()
         
+        # --- Populate Tabs with Initial Data ---
         self.populate_user_list()
         self.populate_log_table() 
         self.populate_intruder_photos()
 
     def perform_cleanup(self):
+        """
+        Performs startup cleanup:
+        1. Deletes access log entries older than 7 days.
+        2. Deletes intruder photos older than 30 days.
+        """
         print("Performing data cleanup...")
         now = datetime.now()
         
+        # --- 1. Clean Access Log (keep last 7 days) ---
         log_cutoff = now - timedelta(days=7)
         valid_log_rows = []
         try:
             if os.path.exists(self.log_file_path):
                 with open(self.log_file_path, 'r', newline='') as f:
                     reader = csv.reader(f)
-                    header = next(reader, None)
+                    header = next(reader, None)  # Read the header
                     if header:
                         valid_log_rows.append(header)
                     
+                    # Read, filter, and store valid rows
                     for row in reader:
                         if len(row) >= 1:
                             try:
@@ -69,19 +88,20 @@ class AdminPanel(QDialog):
                                 if row_date >= log_cutoff:
                                     valid_log_rows.append(row)
                             except ValueError:
-                                if now.strptime(row[0], "%Y-%m-%d %H:%M:%S") >= log_cutoff:
-                                    valid_log_rows.append(row)
+                                # Handle potential malformed date strings
+                                print(f"Skipping malformed log entry: {row}")
                 
+                # Re-write the log file with only the valid rows
                 with open(self.log_file_path, 'w', newline='') as f:
                     writer = csv.writer(f)
                     writer.writerows(valid_log_rows)
                 print(f"Access log cleanup complete. {len(valid_log_rows)-1} entries remain.")
             else:
                 print("Access log not found, skipping cleanup.")
-
         except Exception as e:
             print(f"Error cleaning access log: {e}")
 
+        # --- 2. Clean Intruder Photos (keep last 30 days) ---
         photo_cutoff = (now - timedelta(days=30)).timestamp()
         try:
             if os.path.exists(self.intruder_folder_path):
@@ -111,6 +131,7 @@ class AdminPanel(QDialog):
         form_layout = QFormLayout()
         form_layout.setSpacing(15)
 
+        # --- Widget Definitions ---
         self.port_input = QLineEdit(self.config_manager.get('ARDUINO_PORT'))
         
         self.intent_slider = QSlider(Qt.Horizontal)
@@ -151,7 +172,7 @@ class AdminPanel(QDialog):
         
         self.samples_slider = QSlider(Qt.Horizontal)
         self.samples_slider.setRange(500, 1500) # 500 to 1500 samples
-        self.samples_slider.setSingleStep(100) # Multiples of 100
+        self.samples_slider.setSingleStep(100) # Snap to 100
         self.samples_slider.setPageStep(100)
         self.samples_slider.setValue(int(self.config_manager.get('MAX_SAMPLES')))
         self.samples_label = QLabel(f"{self.samples_slider.value()} samples")
@@ -163,6 +184,7 @@ class AdminPanel(QDialog):
         self.save_button = QPushButton("Save Settings")
         self.save_button.clicked.connect(self.save_settings)
 
+        # --- Layout Assembly ---
         form_layout.addRow(QLabel("Arduino Port:"), self.port_input)
         form_layout.addRow(QLabel("Intent Time (stare):"), self.create_slider_layout(self.intent_slider, self.intent_label))
         form_layout.addRow(QLabel("Alert Time (unknown):"), self.create_slider_layout(self.alert_slider, self.alert_label))
@@ -174,31 +196,41 @@ class AdminPanel(QDialog):
         form_layout.addRow(QLabel("Admin Password:"), self.password_input)
         
         layout.addLayout(form_layout)
-        layout.addStretch()
+        layout.addStretch() # Push button to the bottom
         layout.addWidget(self.save_button, 0, Qt.AlignRight)
         tab.setLayout(layout)
         self.tabs.addTab(tab, "Settings")
 
     def update_samples_label(self, value):
+        """Snaps the sample slider value to the nearest 100."""
         snapped_value = round(value / 100.0) * 100
         self.samples_slider.setValue(snapped_value)
         self.samples_label.setText(f"{snapped_value} samples")
 
     def create_slider_layout(self, slider, label):
+        """
+        Helper function to create a horizontal layout (Slider + Label).
+        This avoids code repetition (DRY principle).
+        """
         layout = QHBoxLayout()
         layout.addWidget(slider)
         label.setFixedWidth(80) 
         label.setAlignment(Qt.AlignRight)
         layout.addWidget(label)
+        
+        # Must return a single QWidget to add to the form layout
         widget = QWidget()
         widget.setLayout(layout)
         return widget
 
     def save_settings(self):
+        """Saves all settings from the form to the config file."""
         try:
+            # Ensure the "samples" value is snapped before saving
             snapped_samples = round(self.samples_slider.value() / 100.0) * 100
             self.samples_slider.setValue(snapped_samples)
 
+            # Update all config values
             self.config_manager.update('ARDUINO_PORT', self.port_input.text())
             self.config_manager.update('INTENT_TIME_SEC', self.intent_slider.value() / 10.0)
             self.config_manager.update('LOITER_TIME_SEC', self.alert_slider.value())
@@ -210,18 +242,20 @@ class AdminPanel(QDialog):
             self.config_manager.update('ADMIN_PASSWORD', self.password_input.text())
             
             QMessageBox.information(self, "Success", "Settings saved successfully.\nChanges will apply on restart.")
-            audio_manager.speak("Settings saved") # <-- NEW
+            audio_manager.speak("Settings saved")  # Audio confirmation
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save settings: {e}")
-            audio_manager.speak("Error saving settings") # <-- NEW
+            audio_manager.speak("Error saving settings")  # Audio feedback for failure
 
     def create_user_mgmt_tab(self):
+        """Creates the 'User Management' tab."""
         tab = QWidget()
         tab.setObjectName("Tab")
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
 
+        # --- "Add New User" Section ---
         add_user_label = QLabel("Add New User")
         add_user_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         
@@ -229,11 +263,13 @@ class AdminPanel(QDialog):
         self.username_input = QLineEdit()
         self.username_input.setPlaceholderText("Enter name (e.g., john_doe)")
         self.add_user_button = QPushButton("Create New User")
+        # Run collection script for a new user
         self.add_user_button.clicked.connect(lambda: self.run_data_collection(existing_username=None))
         
         add_user_form.addRow(QLabel("Username:"), self.username_input)
         add_user_form.addRow(self.add_user_button)
 
+        # --- "Manage Existing Users" Section ---
         manage_users_label = QLabel("Manage Existing Users")
         manage_users_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         
@@ -256,11 +292,13 @@ class AdminPanel(QDialog):
         button_layout.addWidget(self.add_samples_button)
         button_layout.addWidget(self.delete_user_button)
 
+        # --- "Retrain Model" Section (Informational) ---
         retrain_label = QLabel("Retrain Model")
         retrain_label.setStyleSheet("font-size: 16px; font-weight: bold;")
         retrain_info_label = QLabel("The model will be retrained with any changes when you close the Admin Panel.")
         retrain_info_label.setWordWrap(True)
 
+        # --- Layout Assembly ---
         layout.addWidget(add_user_label)
         layout.addLayout(add_user_form)
         layout.addSpacerItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Fixed))
@@ -275,25 +313,39 @@ class AdminPanel(QDialog):
         self.tabs.addTab(tab, "User Management")
 
     def run_data_collection(self, existing_username=None):
+        """
+        Runs the external 'collect_facial_data.py' script as a subprocess.
+        
+        This will block the Admin Panel GUI until the script is finished.
+        
+        Args:
+            existing_username (str, optional): If provided, adds samples to
+                                               this user. If None, creates a
+                                               new user from self.username_input.
+        """
         username = ""
         if existing_username:
             username = existing_username
-            audio_manager.speak(f"Adding more samples for {username}") # <-- NEW
+            audio_manager.speak(f"Adding more samples for {username}") # Audio feedback
         else:
             username = self.username_input.text().strip()
-            audio_manager.speak(f"Creating new user {username}") # <-- NEW
+            audio_manager.speak(f"Creating new user {username}") # Audio feedback
             
+        # --- Input Validation ---
         if not username or " " in username: 
             QMessageBox.warning(self, "Error", "Username cannot be empty or contain spaces.")
-            audio_manager.speak("Error. Username cannot be empty.") # <-- NEW
+            audio_manager.speak("Error. Username cannot be empty.") # Audio feedback
             return
 
+        # Check for duplicates only if creating a new user
         if not existing_username and os.path.exists(os.path.join(self.data_path, username)):
             QMessageBox.warning(self, "Error", f"User '{username}' already exists. Select them from the list to add more samples.")
-            audio_manager.speak("Error. User already exists.") # <-- NEW
+            audio_manager.speak("Error. User already exists.") # Audio feedback
             return
 
+        # --- Run Subprocess ---
         try:
+            # Use sys.executable to ensure we use the same Python interpreter
             python_executable = sys.executable
             script_path = os.path.normpath(os.path.join(os.path.dirname(__file__), "collect_facial_data.py"))
             
@@ -301,84 +353,105 @@ class AdminPanel(QDialog):
                 QMessageBox.critical(self, "Error", f"Script not found: {script_path}")
                 return
 
+            # Inform user that the GUI will freeze (since subprocess.run is blocking)
             QMessageBox.information(self, "Starting Data Collection", 
-                                    f"Starting sample collection for '{username}'.\n\n"
-                                    "The Admin Panel will be unresponsive until you are finished.\n\n"
-                                    "When done, press 'Enter' in the camera window to close it.")
+                                      f"Starting sample collection for '{username}'.\n\n"
+                                      "The Admin Panel will be unresponsive until you are finished.\n\n"
+                                      "When done, press 'Enter' in the camera window to close it.")
 
-            result = subprocess.run([python_executable, script_path, username], capture_output=True, text=True, check=True)
+            # This is a BLOCKING call. The GUI will not update until this is done.
+            result = subprocess.run([python_executable, script_path, username], 
+                                    capture_output=True, text=True, check=True)
             
+            # --- Success ---
             print("Script output:", result.stdout)
             QMessageBox.information(self, "Success", 
-                                    f"Data collection for '{username}' complete.\n\n"
-                                    "The model will be retrained when you close the Admin Panel.")
-            audio_manager.speak("Data collection complete") # <-- NEW
+                                      f"Data collection for '{username}' complete.\n\n"
+                                      "The model will be retrained when you close the Admin Panel.")
+            audio_manager.speak("Data collection complete") # Audio feedback
             self.username_input.clear()
-            self.populate_user_list()
+            self.populate_user_list() # Refresh the list
             
         except subprocess.CalledProcessError as e:
+            # Script exited with an error
             print("Script error:", e.stderr)
             QMessageBox.critical(self, "Error", f"Script failed:\n{e.stderr}")
-            audio_manager.speak("Error. Data collection failed.") # <-- NEW
+            audio_manager.speak("Error. Data collection failed.") # Audio feedback
         except Exception as e:
+            # Other errors (e.g., file not found)
             QMessageBox.critical(self, "Error", f"Failed to run script: {e}")
         finally:
-            pass 
-    
+            pass # We could re-enable buttons here if they were disabled
+
     def add_more_samples(self):
+        """Wrapper function to add samples to an existing, selected user."""
         current_item = self.user_list.currentItem()
         if not current_item:
             QMessageBox.warning(self, "No User Selected", "Please select a user from the list to add more samples.")
             return
             
         username = current_item.text()
+        
+        # Don't try to run on "(No users found)" or other placeholders
         if username.startswith("("):
             return
             
         self.run_data_collection(existing_username=username)
 
     def populate_user_list(self):
+        """Reads the 'face_images' directory and populates the user list."""
         try:
             self.user_list.clear()
             if not os.path.exists(self.data_path):
                 self.user_list.addItem("('face_images' folder not found)")
                 return
                 
+            # List all directories in the data path
             dirs = [d for d in os.listdir(self.data_path) if os.path.isdir(os.path.join(self.data_path, d))]
+            
             if not dirs:
                 self.user_list.addItem("(No users found)")
             
+            # Add each directory (username) to the list
             for user in sorted(dirs):
                 self.user_list.addItem(QListWidgetItem(user))
         except Exception as e:
             print(f"Error populating user list: {e}")
+            self.user_list.addItem(f"(Error: {e})")
 
     def delete_selected_user(self):
+        """Deletes all data (the folder) for the selected user."""
         current_item = self.user_list.currentItem()
         if not current_item:
             QMessageBox.warning(self, "No User Selected", "Please select a user from the list to delete.")
             return
             
         username = current_item.text()
+        
+        # Don't try to delete placeholder items
         if username.startswith("("):
             return
 
+        # --- Confirmation Dialog ---
         reply = QMessageBox.question(self, "Confirm Delete", 
-                                     f"Are you sure you want to permanently delete all data for '{username}'?\nThis cannot be undone.",
-                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+                                       f"Are you sure you want to permanently delete all data for '{username}'?\nThis cannot be undone.",
+                                       QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
 
         if reply == QMessageBox.Yes:
             try:
                 user_path = os.path.join(self.data_path, username)
+                # This recursively deletes the user's folder and all its contents
                 shutil.rmtree(user_path)
-                self.populate_user_list()
+                
+                self.populate_user_list() # Refresh the list
                 QMessageBox.information(self, "Success", f"User '{username}' has been deleted.")
-                audio_manager.speak(f"User {username} deleted") # <-- NEW
+                audio_manager.speak(f"User {username} deleted") # Audio confirmation
             except Exception as e:
                 QMessageBox.critical(self, "Error", f"Failed to delete user: {e}")
-                audio_manager.speak("Error deleting user") # <-- NEW
+                audio_manager.speak("Error deleting user") # Audio feedback
 
     def create_logs_tab(self):
+        """Creates the 'Access Log' tab with a table."""
         tab = QWidget()
         tab.setObjectName("Tab")
         layout = QVBoxLayout()
@@ -387,13 +460,14 @@ class AdminPanel(QDialog):
         self.log_table = QTableWidget()
         self.log_table.setColumnCount(3)
         self.log_table.setHorizontalHeaderLabels(["Timestamp", "Event Type", "User"])
-        self.log_table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.log_table.setEditTriggers(QTableWidget.NoEditTriggers) # Read-only
         self.log_table.setAlternatingRowColors(True)
         
+        # --- Column Sizing ---
         header = self.log_table.horizontalHeader()
-        header.setSectionResizeMode(0, QHeaderView.Stretch)
-        header.setSectionResizeMode(1, QHeaderView.ResizeToContents)
-        header.setSectionResizeMode(2, QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(0, QHeaderView.Stretch) # Timestamp
+        header.setSectionResizeMode(1, QHeaderView.ResizeToContents) # Event
+        header.setSectionResizeMode(2, QHeaderView.ResizeToContents) # User
         
         self.refresh_log_button = QPushButton("Refresh Log")
         self.refresh_log_button.clicked.connect(self.populate_log_table)
@@ -404,7 +478,8 @@ class AdminPanel(QDialog):
         self.tabs.addTab(tab, "Access Log")
 
     def populate_log_table(self):
-        self.log_table.setRowCount(0)
+        """Reads the 'access_log.csv' file and populates the table."""
+        self.log_table.setRowCount(0) # Clear the table
         
         try:
             if not os.path.exists(self.log_file_path):
@@ -414,26 +489,26 @@ class AdminPanel(QDialog):
 
             with open(self.log_file_path, 'r', newline='') as f:
                 reader = csv.reader(f)
-                header = next(reader, None)
-                
+                header = next(reader, None) # Skip the header
                 if not header:
-                    return
+                    return # Empty file
 
                 rows = list(reader)
-                rows.reverse()
+                rows.reverse() # Show the newest entries first
                 
                 self.log_table.setRowCount(len(rows))
                 for row_idx, row in enumerate(rows):
-                    if len(row) == 3:
-                        self.log_table.setItem(row_idx, 0, QTableWidgetItem(row[0]))
-                        self.log_table.setItem(row_idx, 1, QTableWidgetItem(row[1]))
-                        self.log_table.setItem(row_idx, 2, QTableWidgetItem(row[2]))
+                    if len(row) == 3: # Ensure row is not malformed
+                        self.log_table.setItem(row_idx, 0, QTableWidgetItem(row[0])) # Timestamp
+                        self.log_table.setItem(row_idx, 1, QTableWidgetItem(row[1])) # Event
+                        self.log_table.setItem(row_idx, 2, QTableWidgetItem(row[2])) # User
 
         except Exception as e:
             self.log_table.setRowCount(1)
             self.log_table.setItem(0, 0, QTableWidgetItem(f"Error reading log: {e}"))
 
     def create_intruders_tab(self):
+        """Creates the 'Intruder Photos' tab with a scrollable image gallery."""
         tab = QWidget()
         tab.setObjectName("Tab")
         layout = QVBoxLayout()
@@ -443,9 +518,11 @@ class AdminPanel(QDialog):
         self.refresh_photos_button.clicked.connect(self.populate_intruder_photos)
         layout.addWidget(self.refresh_photos_button)
 
+        # --- Scrollable Area ---
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         
+        # This widget will contain the grid layout
         self.gallery_widget = QWidget()
         self.gallery_layout = QGridLayout()
         self.gallery_layout.setSpacing(10)
@@ -457,32 +534,41 @@ class AdminPanel(QDialog):
         self.tabs.addTab(tab, "Intruder Photos")
 
     def populate_intruder_photos(self):
+        """Loads all photos from the 'intruders' folder into the grid."""
+        
+        # Clear all existing widgets from the grid layout
+        # This is the correct way to clear a layout: iterate in reverse
         for i in reversed(range(self.gallery_layout.count())): 
             widget = self.gallery_layout.itemAt(i).widget()
             if widget is not None:
-                widget.deleteLater()
+                widget.deleteLater() # Mark for deletion
 
         try:
             if not os.path.exists(self.intruder_folder_path):
                 self.gallery_layout.addWidget(QLabel("Intruder folder not found."), 0, 0)
                 return
 
+            # Get all JPG and PNG files
             files = [f for f in os.listdir(self.intruder_folder_path) if f.lower().endswith(('.jpg', '.png'))]
+            
+            # Sort files by modification time (newest first)
             files.sort(key=lambda f: os.path.getmtime(os.path.join(self.intruder_folder_path, f)), reverse=True)
             
             if not files:
                 self.gallery_layout.addWidget(QLabel("No intruder photos found."), 0, 0)
                 return
 
-            col_count = 3
+            col_count = 3 # Number of photos per row
             for idx, filename in enumerate(files):
                 filepath = os.path.join(self.intruder_folder_path, filename)
                 
+                # Create a small widget for each photo (image + label)
                 photo_widget = QWidget()
                 photo_layout = QVBoxLayout()
                 
                 img_label = QLabel()
                 pixmap = QPixmap(filepath)
+                # Scale pixmap to fit, keeping aspect ratio
                 img_label.setPixmap(pixmap.scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation))
                 img_label.setAlignment(Qt.AlignCenter)
                 
@@ -494,10 +580,11 @@ class AdminPanel(QDialog):
                 photo_layout.addWidget(file_label)
                 photo_widget.setLayout(photo_layout)
                 
+                # --- Grid Math ---
+                # Calculate the (row, col) position for the grid
                 row = idx // col_count
                 col = idx % col_count
                 self.gallery_layout.addWidget(photo_widget, row, col)
 
         except Exception as e:
             self.gallery_layout.addWidget(QLabel(f"Error loading photos: {e}"), 0, 0)
-

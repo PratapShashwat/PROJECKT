@@ -1,53 +1,76 @@
+/*
+=================================
+Global Styles (Applies to all widgets)
+=================================
+*/
 QWidget {
-    background-color: #2E2E2E;
-    color: #FFFFFF;
+    background-color: #2E2E2E; /* Dark gray background */
+    color: #FFFFFF;            /* White text */
     font-family: Arial;
 }
 
-/* --- Main Window --- */
+/*
+=================================
+Main Window
+=================================
+*/
+
+/* --- Video Feed --- */
 QLabel#VideoLabel {
-    background-color: #000000;
-    border: 2px solid #555555;
+    background-color: #000000;      /* Black background for the video feed */
+    border: 2px solid #555555;    /* Gray border */
 }
 
+/* --- Main Status (LOCKED/UNLOCKED) --- */
 QLabel#StatusLabel {
     font-size: 32px;
     font-weight: bold;
+    /* Color is set dynamically in the Python code */
 }
 
+/* --- Secondary Info Text --- */
 QLabel#InfoLabel {
     font-size: 16px;
-    color: #AAAAAA;
+    color: #AAAAAA; /* Lighter gray for less important text */
 }
 
+/* --- General Button Style --- */
 QPushButton {
-    background-color: #007ACC;
+    background-color: #007ACC; /* Blue */
     border: none;
     padding: 10px;
     border-radius: 5px;
     font-size: 14px;
 }
 QPushButton:hover {
-    background-color: #005FA6;
+    background-color: #005FA6; /* Darker blue on hover */
 }
 
+/* --- Specific Button Overrides --- */
+
+/* Manual Unlock Button */
 QPushButton#UnlockButton {
     background-color: #008f00; /* Green */
 }
 QPushButton#UnlockButton:hover {
-    background-color: #006a00;
+    background-color: #006a00; /* Darker green */
 }
 
+/* Lock Now Button (only visible when unlocked) */
 QPushButton#LockNowButton {
     background-color: #D32F2F; /* Red */
 }
 QPushButton#LockNowButton:hover {
-    background-color: #B71C1C;
+    background-color: #B71C1C; /* Darker red */
 }
 
-/* --- Login Dialog --- */
+/*
+=================================
+Login Dialog
+=================================
+*/
 QDialog#LoginDialog {
-    background-color: #2E2E2E;
+    background-color: #2E2E2E; /* Match the main window */
 }
 
 QDialog#LoginDialog QLabel {
@@ -55,7 +78,7 @@ QDialog#LoginDialog QLabel {
 }
 
 QDialog#LoginDialog QLineEdit {
-    background-color: #555555;
+    background-color: #555555; /* Dark gray input field */
     color: #FFFFFF;
     border: 1px solid #777777;
     border-radius: 5px;
@@ -63,12 +86,19 @@ QDialog#LoginDialog QLineEdit {
     font-size: 14px;
 }
 
-/* --- Admin Panel --- */
+/*
+=================================
+Admin Panel
+=================================
+*/
+
+/* --- Tab Styling --- */
 QTabWidget::pane {
+    /* This is the container *behind* the selected tab's content */
     border-top: 2px solid #555555;
 }
 QTabBar::tab {
-    background: #444444;
+    background: #444444;    /* Dark gray for unselected tabs */
     color: #FFFFFF;
     padding: 10px;
     border: 1px solid #555555;
@@ -77,60 +107,65 @@ QTabBar::tab {
     border-top-right-radius: 5px;
 }
 QTabBar::tab:selected {
-    background: #2E2E2E;
-    border-bottom: 2px solid #007ACC;
+    background: #2E2E2E; /* Match the main background */
+    border-bottom: 2px solid #007ACC; /* Blue underline for selected tab */
 }
+/* This ensures the content area of the tab matches the window */
 QWidget#Tab {
     background-color: #2E2E2E;
 }
 
+/* --- Slider Styling --- */
 QSlider::groove:horizontal {
     border: 1px solid #999999;
     height: 8px; 
-    background: #555555;
+    background: #555555;    /* The "track" of the slider */
     margin: 2px 0;
     border-radius: 4px;
 }
 QSlider::handle:horizontal {
-    background: #007ACC;
+    background: #007ACC;    /* The "knob" of the slider */
     border: 1px solid #007ACC;
     width: 18px;
-    margin: -5px 0; 
+    margin: -5px 0; /* Vertical centering */
     border-radius: 9px;
 }
 
+/* --- Admin Panel Button Overrides --- */
 QPushButton#DeleteButton {
-    background-color: #D32F2F;
+    background-color: #D32F2F; /* Red */
 }
 QPushButton#DeleteButton:hover {
     background-color: #B71C1C;
 }
 
 QPushButton#AddSamplesButton {
-    background-color: #008f00;
+    background-color: #008f00; /* Green */
 }
 QPushButton#AddSamplesButton:hover {
     background-color: #006a00;
 }
 
+/* --- List & Table Styling --- */
 QListWidget {
     background-color: #444444;
     border: 1px solid #777777;
     border-radius: 5px;
 }
 
-/* --- FIX for gridline-color --- */
+/* Table styling for Access Log */
 QTableWidget { 
     background-color: #444444; 
-    border: 1px solid #555555; /* Add a border to the table itself */
-    gridline-color: transparent; /* Hide default gridlines if any */
+    border: 1px solid #555555;
+    gridline-color: transparent; /* Hide built-in gridlines */
 }
 QTableWidget::item {
-    border-bottom: 1px solid #555555; /* Adds the horizontal grid lines */
+    /* We create our own "gridlines" by only styling the bottom border */
+    border-bottom: 1px solid #555555; 
     padding: 3px;
 }
-/* --- End Fix --- */
 
+/* Table Header */
 QHeaderView::section { 
     background-color: #555555; 
     color: #FFFFFF; 
